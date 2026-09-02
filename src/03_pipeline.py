@@ -1,48 +1,4 @@
-"""
-Multi-Hazard SEA — pipeline lengkap untuk dijalankan di Colab
 
-Titik latih dari Drive, parameter dari katalog GEE, sampling ditarik langsung
-ke memori per potongan kecil. Tanpa upload asset, tanpa download raster, tanpa
-Export.table.toDrive.
-
-CARA PAKAI
-----------
-Berkas ini dibagi jadi sel dengan penanda "# %%".
-
-  Colab   : buka berkas ini, lalu salin tiap blok "# %%" ke sel terpisah.
-            Atau unggah ke Drive dan jalankan sekaligus:
-                %run /content/drive/MyDrive/multihazard.py
-  VS Code : penanda "# %%" langsung dikenali sebagai sel interaktif.
-  Terminal: python multihazard.py  (menjalankan seluruh alur berurutan)
-
-Sel 6 menyimpan hasil sampling ke Drive, jadi sesi yang putus tidak memaksa
-pengulangan dari awal.
-"""
-
-# %% [markdown]
-# # Multi-Hazard SEA — seluruhnya di Colab
-#
-# Tanpa upload asset ke GEE, tanpa download raster, tanpa `Export.table.toDrive`.
-#
-# - **Titik latih** dibaca dari shapefile di Drive
-# - **Parameter** diambil dari katalog GEE, dihitung di server
-# - **Sampling** ditarik langsung ke memori per potongan kecil, jadi tidak kena
-#   batas waktu `getInfo()` dan tidak perlu antre batch job
-# - **Validasi** dijalankan lokal dengan scikit-learn
-#
-# Hanya nilai prediktor di titik yang berpindah dari GEE ke Colab — sekitar
-# 7.000 baris, bukan raster.
-#
-# Jalankan sel berurutan. Sel 5 menyimpan hasil sementara ke Drive, jadi kalau
-# sesi Colab putus, sampling tidak perlu diulang dari nol.
-
-# %% [markdown]
-# ## Sel 1 — Setup
-
-# %%
-# Di Colab, dua blok berikut memasang dependensi dan memasang Drive.
-# Di luar Colab, keduanya dilewati dan diasumsikan sudah terpasang:
-#   pip install earthengine-api geopandas statsmodels scikit-learn scipy
 try:
     from google.colab import drive
     drive.mount('/content/drive')
@@ -132,11 +88,7 @@ SEA = ["Brunei", "Cambodia", "Timor-Leste", "Indonesia", "Laos", "Malaysia",
 print("mode absence :", ABSENCE_MODE)
 print("skala        :", TARGET_SCALE, "m")
 
-# %% [markdown]
-# ## Sel 3 — Baca titik dari Drive
-#
-# Shapefile dibaca lokal dengan geopandas. Yang keluar dari sel ini hanya daftar
-# koordinat, jadi tidak ada asset yang perlu diunggah.
+
 
 # %%
 import zipfile
@@ -194,16 +146,6 @@ for hz in DRIVE_FILES:
     print(f"  {'':<10s} absence  {len(absn):>5d}"
           f"{'' if len(absn) == fa else f'  <- berkas utuh {fa}'}")
 
-# %% [markdown]
-# ## Sel 4 — Stack prediktor
-#
-# Dibangun sebagai objek GEE yang belum dihitung. Tidak ada `reproject()` —
-# memanggilnya di sini memaksa GEE menghitung seluruh piksel AOI dan itulah
-# penyebab utama *Computation timed out*. Skala cukup ditetapkan saat sampling.
-#
-# Koleksi harian juga diganti dengan agregat yang lebih jarang (CHIRPS pentad,
-# MOD11A2 8-harian, ERA5-Land bulanan). Rata-rata jangka panjangnya setara, tapi
-# jumlah citra yang diproses turun dari ribuan ke ratusan.
 
 # %%
 lsib = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017")
@@ -251,13 +193,7 @@ def build_stack():
 STACK = build_stack()
 print("stack siap:", STACK.bandNames().getInfo())
 
-# %% [markdown]
-# ## Sel 5 — Pseudo-absence buffered (lewati jika `ABSENCE_MODE = "legacy"`)
-#
-# Membangkitkan titik non-kejadian acak di luar buffer semua titik kejadian,
-# sehingga absence tidak lagi ditentukan oleh prediktor yang sama yang dipakai
-# melatih model. Hanya koordinat yang ditarik, tanpa perhitungan raster, jadi
-# cepat.
+
 
 # %%
 def buffered_absences(pres_coords, n, buffer_m=BUFFER_M, seed=RANDOM_SEED):
@@ -281,16 +217,6 @@ else:
         points[hz]["absence_used"] = points[hz]["legacy_absence"]
     print("  memakai titik non-kejadian lama dari Drive")
 
-# %% [markdown]
-# ## Sel 6 — Sampling bertahap, langsung ke memori
-#
-# Inti dari pendekatan ini. Titik dipotong jadi kelompok kecil, tiap kelompok
-# ditarik dengan `getInfo()`. Karena tiap panggilan hanya menghitung stack di
-# beberapa ratus titik, tidak ada yang mendekati batas waktu, dan tidak ada batch
-# job yang perlu diantre.
-#
-# Hasil tiap bahaya disimpan ke Drive begitu selesai, jadi sesi yang putus tidak
-# memaksa pengulangan dari awal.
 
 # %%
 def sample_chunk(coords, idx, bands, retries=3):
@@ -360,10 +286,6 @@ for hz in HAZARD_BANDS:
     print(f"    {n1} presence / {n0} absence")
 
 # %% [markdown]
-# ## Sel 7 — Audit jarak pseudo-absence (komentar #8)
-#
-# Menghitung jarak tiap titik non-kejadian ke kejadian terdekat, lokal dengan
-# scipy. Tidak menyentuh GEE, selesai seketika.
 
 # %%
 from scipy.spatial import cKDTree
@@ -384,8 +306,6 @@ audit_df = pd.DataFrame(rows).round(2)
 print(audit_df.to_string(index=False))
 audit_df.to_csv(f"absence_distance_audit_{ABSENCE_MODE}.csv", index=False)
 
-# %% [markdown]
-# ## Sel 8 — VIF dan matriks korelasi (komentar #5 dan #9)
 
 # %%
 import matplotlib.pyplot as plt
@@ -393,24 +313,6 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools import add_constant
 
 def collinearity(df, bands, hazard):
-    """VIF plus matriks korelasi Pearson DAN Spearman.
-
-    VIF dan Pearson dipertahankan karena keduanya koheren satu sama lain: VIF
-    diturunkan dari R2 regresi linear, dan itu pula yang diminta reviewer.
-
-    Spearman dilaporkan berdampingan karena model yang dipakai berbasis pohon,
-    yang invarian terhadap transformasi monoton. Untuk pertanyaan sebenarnya,
-    yaitu apakah importance terbagi di antara prediktor redundan, keterkaitan
-    monoton lebih relevan daripada linear. Spearman juga tahan terhadap
-    kemencengan curah hujan dan terhadap tumpukan nilai pada dist_river yang
-    berasal dari unmask(50000).
-
-    PENTING: matriks desain HARUS memuat kolom konstanta. Tanpa itu,
-    variance_inflation_factor memakai R2 uncentered, sehingga variabel dengan
-    rasio mean terhadap sd yang besar mendapat VIF raksasa meskipun saling
-    bebas. Sebagian versi statsmodels menambahkannya sendiri dan sebagian
-    tidak, jadi konstanta ditambahkan eksplisit agar hasilnya konsisten.
-    """
     num = [b for b in bands if b not in CATEGORICAL_BANDS]
     X = df[num].astype(float)
     dropped = [c for c in X.columns if X[c].std() == 0]
@@ -483,13 +385,6 @@ fig.savefig(f"FigS1_correlation_{ABSENCE_MODE}.png", dpi=600, bbox_inches="tight
 print(f"\n  FigS1_correlation_{ABSENCE_MODE}.png tersimpan (600 dpi)")
 plt.show()
 
-# %% [markdown]
-# ## Sel 9 — Validasi silang (komentar #3 dan #25)
-#
-# Selisih antara `random_fold` dan `spatial_fold` adalah angka yang diminta
-# reviewer. Penurunan AUC pada skema spasial itu wajar dan justru menunjukkan
-# validasinya benar.
-
 # %%
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -545,24 +440,3 @@ for hz, df in samples.items():
 metrics = pd.DataFrame(records)
 metrics.to_csv(f"validation_metrics_{ABSENCE_MODE}.csv", index=False)
 print(f"\nvalidation_metrics_{ABSENCE_MODE}.csv tersimpan")
-
-# %% [markdown]
-# ## Sel 10 — Tabel untuk naskah
-
-# %%
-m = metrics.copy()
-m["AUC"] = m.apply(lambda r: f"{r.auc_mean:.3f}" if np.isnan(r.auc_sd)
-                   else f"{r.auc_mean:.3f} +/- {r.auc_sd:.3f}", axis=1)
-tab = m.pivot_table(index=["hazard", "classifier"], columns="scheme",
-                    values="AUC", aggfunc="first")
-tab = tab[[c for c in ("holdout_70_30", "random_fold", "spatial_fold") if c in tab.columns]]
-print(tab.to_string())
-tab.to_csv(f"TableS1_validation_{ABSENCE_MODE}.csv")
-
-d = metrics.pivot_table(index=["hazard", "classifier"], columns="scheme", values="auc_mean")
-if {"random_fold", "spatial_fold"} <= set(d.columns):
-    d["delta"] = d.spatial_fold - d.random_fold
-    print("\nSelisih AUC (spasial - acak):")
-    for (h, c), r in d.iterrows():
-        print(f"  {h:<10s} {c:<5s} {r.random_fold:.3f} -> {r.spatial_fold:.3f}  ({r.delta:+.3f})")
-    print(f"\n  rata-rata: {d.delta.mean():+.3f}")
