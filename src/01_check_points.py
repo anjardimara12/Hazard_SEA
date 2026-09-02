@@ -1,13 +1,4 @@
-"""
-Periksa atribut kelas pada keenam berkas titik di Drive.
 
-Tujuan: memastikan apakah berkas "non" hanya berisi titik non-kejadian, atau
-sebenarnya gabungan kejadian dan non-kejadian. Kalau ada kolom Kelas berisi
-1 dan 0, gabungan itu terbukti dan jumlah di naskah harus mengikuti isi berkas.
-
-Pakai di Colab: paste seluruh isi berkas ini ke satu sel, lalu jalankan.
-Pakai dari terminal: python cek_kelas.py
-"""
 
 import glob
 import os
