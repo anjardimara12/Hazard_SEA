@@ -1,21 +1,3 @@
-"""
-Figure 9 — Country-level hazard vs environment scatterplots.
-
-Perbaikan terhadap versi sebelumnya, menjawab Komentar 24 Reviewer #1:
-
-1. Typo judul panel: "Landslideean vs Ecosystem" -> "Landslide vs Ecosystem".
-2. Label negara keluar bingkai. annotate() secara default tidak dipotong pada
-   batas sumbu, sedangkan Cambodia dan Philippines berada persis di tepi rentang
-   data. Diperbaiki dengan menambah margin sumbu dan mengaktifkan clip_on.
-3. Label saling menimpa ("ThaiCambodia", "Vietnam" di atas "Indonesia").
-   Diperbaiki dengan adjustText bila tersedia; kalau tidak, dipakai penggeseran
-   sederhana berbasis tabrakan kotak teks.
-4. cm.get_cmap() dihapus di matplotlib 3.9. Diganti plt.get_cmap().
-5. tab10 hanya punya 10 warna untuk 11 negara. Diganti tab20.
-6. Ekspor 600 dpi untuk keperluan cetak.
-
-    pip install adjustText     # opsional, hasil label lebih rapi
-"""
 
 import matplotlib
 matplotlib.use("Agg")
@@ -40,9 +22,9 @@ OUT = 'Figure9_hazard_vs_environment.png'
 CROPLAND_THRESHOLD = 36
 ECONOMIC_THRESHOLD = 265
 ECOSYSTEM_THRESHOLD = 6
-HAZARD_THRESHOLD = 0.8          # ambang sumbu-x untuk elips mitigasi
+HAZARD_THRESHOLD = 0.8      
 
-MARGIN = 0.14                   # ruang di tepi agar label tidak menyentuh bingkai
+MARGIN = 0.14                  
 LABEL_SIZE = 9
 DPI = 600
 
@@ -72,8 +54,7 @@ print(f'{valid.sum()} dari {len(valid)} baris dipakai')
 
 countries = d['country']
 unique_countries = np.unique(countries)
-# tab20 dipakai karena tab10 hanya menyediakan 10 warna untuk 11 negara,
-# sehingga dua negara akan berwarna sama.
+
 cmap = plt.get_cmap('tab20', max(len(unique_countries), 20))
 color_of = {c: cmap(i) for i, c in enumerate(unique_countries)}
 colors = [color_of[c] for c in countries]
@@ -106,10 +87,7 @@ def place_labels(ax, x, y, names):
                     expand_points=(1.4, 1.4))
         return
 
-    # Cadangan tanpa adjustText: coba beberapa posisi, terima yang pertama
-    # tidak menimpa label lain DAN tetap berada di dalam bingkai. clip_on
-    # sengaja dibiarkan mati, karena memotong teks (mis. "East Timor" jadi
-    # "East Tim") alih-alih memindahkannya.
+
     fig = ax.figure
     fig.canvas.draw()
     ax_bb = ax.get_window_extent()
@@ -139,14 +117,13 @@ def place_labels(ax, x, y, names):
             placed.append(t.get_window_extent())
 
 
-# ------------------------------------------------------------------ gambar
+
 PANELS = [
     ('flood',     'cropland',  'Flood vs Cropland',      CROPLAND_THRESHOLD),
     ('flood',     'economic',  'Flood vs Economic',      ECONOMIC_THRESHOLD),
     ('flood',     'ecosystem', 'Flood vs Ecosystem',     ECOSYSTEM_THRESHOLD),
     ('landslide', 'cropland',  'Landslide vs Cropland',  CROPLAND_THRESHOLD),
     ('landslide', 'economic',  'Landslide vs Economic',  ECONOMIC_THRESHOLD),
-    # typo lama: "Landslideean vs Ecosystem"
     ('landslide', 'ecosystem', 'Landslide vs Ecosystem', ECOSYSTEM_THRESHOLD),
     ('wildfire',  'cropland',  'Wildfire vs Cropland',   CROPLAND_THRESHOLD),
     ('wildfire',  'economic',  'Wildfire vs Economic',   ECONOMIC_THRESHOLD),
@@ -165,8 +142,6 @@ for ax, (xk, yk, title, thr) in zip(axs.flat, PANELS):
     ax.set_xlabel(xk.capitalize(), fontsize=12)
     ax.set_ylabel(yk.capitalize(), fontsize=12)
     draw_mitigation_ellipse(ax, x, y, thr)
-    # Margin lebih lebar memberi ruang bagi label di tepi rentang data,
-    # yang sebelumnya membuat "Cambodia" dan "Philippines" keluar bingkai.
     ax.margins(MARGIN)
     place_labels(ax, x, y, countries)
 
