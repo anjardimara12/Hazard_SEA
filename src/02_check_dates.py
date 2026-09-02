@@ -1,18 +1,3 @@
-"""
-Tentukan rentang tahun inventaris bahaya langsung dari berkas titik.
-
-Menjawab Komentar 4: §2.1 menulis longsor 2014-2020, kebakaran 2015-2020,
-banjir 2000-2018, sementara Tabel 2 menulis 2000-2023 untuk ketiganya.
-Tanggal kejadian tersimpan sebagai atribut di berkas titik, jadi rentang yang
-benar bisa dihitung, bukan diingat.
-
-Kolom tanggal per berkas:
-  longsor   : event_date            (Global Landslide Catalog)
-  kebakaran : acq_date              (MODIS/FIRMS acquisition date)
-  banjir    : dfo_began, dfo_ended  (Global Flood Database / DFO)
-
-Paste ke satu sel Colab lalu jalankan.
-"""
 
 import os
 import zipfile
