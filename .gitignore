@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# keluaran dihasilkan ulang oleh skrip
+results/*
+!results/.gitkeep
+*.csv
+*.png
+*.jpg
+*.tif
+*.docx
+
+# data masukan tidak didistribusikan ulang
+data/*
+!data/README.md
+
+.DS_Store

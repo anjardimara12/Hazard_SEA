@@ -1,0 +1,18 @@
+# Earth Engine dan geospasial
+earthengine-api>=0.1.380
+geopandas>=0.13
+shapely>=2.0
+pyogrio>=0.6
+
+# analisis
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+scikit-learn>=1.3
+statsmodels>=0.14
+
+# gambar dan tabel
+matplotlib>=3.7
+Pillow>=10.0
+adjustText>=1.0      # opsional, merapikan label Figure 9
+python-docx>=1.1     # opsional, menulis tabel ke .docx
