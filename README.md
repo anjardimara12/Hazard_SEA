@@ -49,8 +49,7 @@ src/
                        sampling, VIF and correlation, cross-validation,
                        susceptibility export
   04_figure9.py        Figure 9, country-level hazard vs environment scatterplots
-  05_tables.py         Build Tables 3, 4 and 5 from the pipeline outputs
-data/
+
   README.md            What the pipeline expects, and where each input comes from
 results/
   (written by the scripts)
@@ -97,13 +96,7 @@ an interrupted session does not force a restart.
 python src/03_pipeline.py
 ```
 
-**3. Build the tables.**
-
-```bash
-python src/05_tables.py --dir results
-```
-
-**4. Regenerate Figure 9** if the underlying zonal statistics change.
+**3. Regenerate Figure 9** if the underlying zonal statistics change.
 
 ```bash
 python src/04_figure9.py
@@ -178,11 +171,6 @@ Input datasets are third-party products and are not redistributed here. See
 
 ---
 
-## Citation
-
-If you use this code, please cite the manuscript. A `CITATION.cff` file is
-included; update it with the final volume, pages and DOI once the paper is
-published.
 
 ## License
 
